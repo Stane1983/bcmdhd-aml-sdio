@@ -8256,9 +8256,13 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	uint32 apsta = 0;
 	int ap_mode = 1;
 #endif /* (defined(AP) || defined(WLP2P)) && !defined(SOFTAP_AND_GC) */
-#ifdef GET_CUSTOM_MAC_ENABLE
+#if defined(GET_CUSTOM_MAC_ENABLE) || defined(GET_RANDOM_MAC_ENABLE)
 	struct ether_addr ea_addr;
-#endif /* GET_CUSTOM_MAC_ENABLE */
+#endif /* GET_CUSTOM_MAC_ENABLE || GET_RANDOM_MAC_ENABLE */
+
+#if defined(SET_RANDOM_MAC_SOFTAP) || defined(GET_RANDOM_MAC_ENABLE)
+		uint rand_mac;
+#endif /* SET_RANDOM_MAC_SOFTAP */
 
 #ifdef DISABLE_11N
 	uint32 nmode = 0;
@@ -8351,6 +8355,56 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	/* Update public MAC address after reading from Firmware */
 	memcpy(dhd->mac.octet, buf, ETHER_ADDR_LEN);
 
+#ifdef GET_RANDOM_MAC_ENABLE
+		//printf(">>>>>>>>>> Firmware  mac-addr="MACDBG"\n",MAC2STRDBG(dhd->mac.octet));
+		//printf(">>>>>>>>>> uboot setup  mac-addr="MACDBG"\n",MAC2STRDBG(DEFMAC));
+		//mac-addr==00:90:4c:c5:12:38
+		if((dhd->mac.octet[0] == 0x00) && (dhd->mac.octet[1] == 0x90) && (dhd->mac.octet[2] == 0x4C) &&
+		   (dhd->mac.octet[3] == 0xC5) && (dhd->mac.octet[4] == 0x12) && (dhd->mac.octet[5] == 0x38))
+		{
+			if((DEFMAC[0] == 0x00) && (DEFMAC[1] == 0x00) && (DEFMAC[2] == 0x00) &&
+			   (DEFMAC[3] == 0x00) && (DEFMAC[4] == 0x00) && (DEFMAC[5] == 0x00))
+			{	//uboot setup mac-addr ==00:00:00:00:00:00
+				//ret = wifi_platform_get_mac_addr(dhd->info->adapter, ea_addr.octet);
+				//printf(">>>>>>>>>> wifi_platform_get_mac_addr return %d\n",ret);
+				SRANDOM32((uint)jiffies);
+				rand_mac = RANDOM32();
+				ea_addr.octet[0] = 0xc0 ;
+				ea_addr.octet[1] = 0x76 ;
+				ea_addr.octet[2] = 0x58 ;
+				ea_addr.octet[3] = (unsigned char)(rand_mac & 0x0F) | 0xF0 ;
+				ea_addr.octet[4] = (unsigned char)(rand_mac >> 16) ;
+				ea_addr.octet[5] = (unsigned char)(rand_mac >> 8) ;
+				if (!ret) {
+					memset(buf, 0, sizeof(buf));
+					bcm_mkiovar("cur_etheraddr", (void *)&ea_addr, ETHER_ADDR_LEN, buf, sizeof(buf));
+					ret = dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, buf, sizeof(buf), TRUE, 0);
+					if (ret < 0) {
+						DHD_ERROR(("%s: can't set MAC address , error=%d\n", __FUNCTION__, ret));
+						return BCME_NOTUP;
+					}
+					memcpy(dhd->mac.octet, ea_addr.octet, ETHER_ADDR_LEN);
+				}
+			}else {	//uboot setup mac-addr !=00:00:00:00:00:00
+				ea_addr.octet[0] = 0xe0;
+				ea_addr.octet[1] = DEFMAC[1];
+				ea_addr.octet[2] = DEFMAC[2];
+				ea_addr.octet[3] = DEFMAC[3];
+				ea_addr.octet[4] = DEFMAC[4];
+				ea_addr.octet[5] = DEFMAC[5];
+				memset(buf, 0, sizeof(buf));
+				bcm_mkiovar("cur_etheraddr", (void *)&ea_addr, ETHER_ADDR_LEN, buf, sizeof(buf));
+				ret = dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, buf, sizeof(buf), TRUE, 0);
+				if (ret < 0) {
+					DHD_ERROR(("%s: can't set MAC address , error=%d\n", __FUNCTION__, ret));
+					return BCME_NOTUP;
+				}
+				memcpy(dhd->mac.octet, ea_addr.octet, ETHER_ADDR_LEN);
+			}
+		}
+		//printf(">>>>>>>>>> in the end  mac-addr="MACDBG"\n",MAC2STRDBG(dhd->mac.octet));
+#endif
+
 	if ((ret = dhd_apply_default_clm(dhd, dhd->clm_path)) < 0) {
 		DHD_ERROR(("%s: CLM set failed. Abort initialization.\n", __FUNCTION__));
 		goto done;
@@ -8377,9 +8431,6 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 
 	if ((!op_mode && dhd_get_fw_mode(dhd->info) == DHD_FLAG_HOSTAP_MODE) ||
 		(op_mode == DHD_FLAG_HOSTAP_MODE)) {
-#ifdef SET_RANDOM_MAC_SOFTAP
-		uint rand_mac;
-#endif /* SET_RANDOM_MAC_SOFTAP */
 		dhd->op_mode = DHD_FLAG_HOSTAP_MODE;
 #if defined(ARP_OFFLOAD_SUPPORT)
 			arpoe = 0;
