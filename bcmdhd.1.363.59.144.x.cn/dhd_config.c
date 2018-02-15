@@ -50,6 +50,7 @@ uint config_msg_level = CONFIG_ERROR_LEVEL;
 #ifdef CONFIG_PATH_AUTO_SELECT
 #ifdef BCMSDIO
 #define CONFIG_BCM4330B2 "config_40183b2.txt"
+#define CONFIG_BCM4335B0 "config_4335b0.txt"
 #define CONFIG_BCM43362A0 "config_40181a0.txt"
 #define CONFIG_BCM43362A2 "config_40181a2.txt"
 #define CONFIG_BCM43438A0 "config_43438a0.txt"
@@ -657,6 +658,8 @@ dhd_conf_set_conf_name_by_chip(dhd_pub_t *dhd, char *conf_path)
 			break;
 		case BCM4335_CHIP_ID:
 			if (chiprev == BCM4335A0_CHIP_REV)
+				strcpy(&conf_path[i+1], CONFIG_BCM4335B0);
+			else if (chiprev == BCM4335B0_CHIP_REV)
 				strcpy(&conf_path[i+1], CONFIG_BCM4339A0);
 			break;
 		case BCM4345_CHIP_ID:
