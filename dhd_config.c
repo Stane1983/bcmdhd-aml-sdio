@@ -94,6 +94,27 @@ uint config_msg_level = CONFIG_ERROR_LEVEL;
 #define FW_BCM4359B1 "fw_bcm4359b1_ag"
 #define FW_BCM4359C0 "fw_bcm4359c0_ag"
 
+#define NV_BCM4330B2 "nvram_bcm40183b2.txt"
+#define NV_BCM4330B2_AG "nvram_bcm40183b2.txt"
+#define NV_BCM4335B0_AG "nvram_bcm4335b0.txt"
+#define NV_BCM43362A0 "nvram_bcm40181a0.txt"
+#define NV_BCM43362A2 "nvram_bcm40181a2.txt"
+#define NV_BCM4334B1 "nvram_bcm4334b1.txt"
+#define NV_BCM43438A0 "nvram_bcm43438a0.txt"
+#define NV_BCM43438A1 "nvram_bcm43438a1.txt"
+#define NV_BCM43436B0 "nvram_bcm43436b0.txt"
+#define NV_BCM43012B0 "nvram_bcm43012b0.txt"
+#define NV_BCM43341B1 "nvram_bcm43341b0.txt"
+#define NV_BCM43241B4 "nvram_bcm43241b4.txt"
+#define NV_BCM4339A0 "nvram_bcm4339a0.txt"
+#define NV_BCM43455C0 "nvram_bcm43455c0.txt"
+#define NV_BCM43456C5 "nvram_bcm43456c5.txt"
+#define NV_BCM4354A1 "nvram_bcm4354a1.txt"
+#define NV_BCM4356A2 "nvram_bcm4356a2.txt"
+#define NV_BCM4358A3 "nvram_bcm4358.txt"
+#define NV_BCM4359B1 "nvram_bcm4359b1.txt"
+#define NV_BCM4359C0 "nvram_bcm4359c0.txt"
+
 #define CLM_BCM43012B0 "clm_bcm43012b0"
 #endif
 #ifdef BCMPCIE
@@ -539,42 +560,114 @@ dhd_conf_set_clm_name_by_chip(dhd_pub_t *dhd, char *clm_path)
 void
 dhd_conf_set_nv_name_by_chip(dhd_pub_t *dhd, char *nv_path)
 {
-	int matched=-1;
-	uint chip, chiprev;
-	int i;
+	int ag_type;
+    static uint chip, chiprev, first=1;
+    int i;
 
-	chip = dhd->conf->chip;
-	chiprev = dhd->conf->chiprev;
-
-	for (i=0; i<dhd->conf->nv_by_chip.count; i++) {
-		if (chip==dhd->conf->nv_by_chip.m_chip_nv_path_head[i].chip &&
-				chiprev==dhd->conf->nv_by_chip.m_chip_nv_path_head[i].chiprev) {
-			matched = i;
-			break;
-		}
-	}
-	if (matched < 0)
-		return;
-
-	if (nv_path[0] == '\0') {
-#ifdef CONFIG_BCMDHD_NVRAM_PATH
-		bcm_strncpy_s(nv_path, MOD_PARAM_PATHLEN-1, CONFIG_BCMDHD_NVRAM_PATH, MOD_PARAM_PATHLEN-1);
-		if (nv_path[0] == '\0')
+#ifdef BAND_AG
+	ag_type = FW_TYPE_AG;
+#else
+	ag_type = strstr(&nv_path[i], "_ag") ? FW_TYPE_AG : FW_TYPE_G;
 #endif
-		{
-			printf("nvram path is null\n");
-			return;
-		}
-	}
 
-	/* find out the last '/' */
-	i = strlen(nv_path);
-	while (i > 0) {
-		if (nv_path[i] == '/') break;
-		i--;
-	}
+    if (first) {
+		chip = dhd->conf->chip;
+		chiprev = dhd->conf->chiprev;
+		first = 0;
+    }
+    #ifndef FW_PATH_AUTO_SELECT
+        return;
+    #endif
 
-	strcpy(&nv_path[i+1], dhd->conf->nv_by_chip.m_chip_nv_path_head[matched].name);
+    /* find out the last '/' */
+    i = strlen(nv_path);
+    while (i>0){
+        if (nv_path[i] == '/') break;
+        i--;
+    }
+	switch (chip) {
+#ifdef BCMSDIO
+		case BCM4330_CHIP_ID:
+			if (ag_type == FW_TYPE_G) {
+				if (chiprev == BCM4330B2_CHIP_REV)
+					strcpy(&nv_path[i+1], NV_BCM4330B2);
+			} else {
+				if (chiprev == BCM4330B2_CHIP_REV)
+					strcpy(&nv_path[i+1], NV_BCM4330B2_AG);
+			}
+			break;
+		case BCM43362_CHIP_ID:
+			if (chiprev == BCM43362A0_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM43362A0);
+			else
+				strcpy(&nv_path[i+1], NV_BCM43362A2);
+			break;
+		case BCM43430_CHIP_ID:
+			if (chiprev == BCM43430A0_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM43438A0);
+			else if (chiprev == BCM43430A1_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM43438A1);
+			else if (chiprev == BCM43430A2_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM43436B0);
+			break;
+		case BCM43012_CHIP_ID:
+			if (chiprev == BCM43012B0_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM43012B0);
+		case BCM4334_CHIP_ID:
+			if (chiprev == BCM4334B1_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM4334B1);
+			break;
+		case BCM43340_CHIP_ID:
+		case BCM43341_CHIP_ID:
+			if (chiprev == BCM43341B0_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM43341B1);
+			break;
+		case BCM4324_CHIP_ID:
+			if (chiprev == BCM43241B4_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM43241B4);
+			break;
+		case BCM4335_CHIP_ID:
+			if (chiprev == BCM4335A0_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM4339A0);
+			else if (chiprev == BCM4335B0_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM4335B0_AG);
+			break;
+		case BCM4339_CHIP_ID:
+			if (chiprev == BCM4339A0_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM4339A0);
+			break;
+		case BCM4345_CHIP_ID:
+		case BCM43454_CHIP_ID:
+			if (chiprev == BCM43455C0_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM43455C0);
+			else if (chiprev == BCM43455C5_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM43456C5);
+			break;
+		case BCM4354_CHIP_ID:
+			if (chiprev == BCM4354A1_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM4354A1);
+			else if (chiprev == BCM4356A2_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM4356A2);
+			break;
+		case BCM4356_CHIP_ID:
+		case BCM4371_CHIP_ID:
+			if (chiprev == BCM4356A2_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM4356A2);
+			break;
+		case BCM43569_CHIP_ID:
+			if (chiprev == BCM4358A3_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM4358A3);
+			break;
+		case BCM4359_CHIP_ID:
+			if (chiprev == BCM4359B1_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM4359B1);
+			else if (chiprev == BCM4359C0_CHIP_REV)
+				strcpy(&nv_path[i+1], NV_BCM4359C0);
+			break;
+#endif
+		default:
+			strcpy(&nv_path[i+1], "fw_bcmdhd");
+	}
 
 	CONFIG_TRACE(("%s: nvram_path=%s\n", __FUNCTION__, nv_path));
 }
