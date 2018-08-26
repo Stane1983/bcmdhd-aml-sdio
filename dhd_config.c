@@ -481,6 +481,9 @@ dhd_conf_set_fw_name_by_chip(dhd_pub_t *dhd, char *fw_path)
 			else if (chiprev == BCM43455C5_CHIP_REV)
 				strcpy(&fw_path[i+1], FW_BCM43456C5);
 			break;
+        case BCM43455_CHIP_ID:
+            strcpy(&fw_path[i+1], FW_BCM43455C0);
+            break;
 		case BCM4354_CHIP_ID:
 			if (chiprev == BCM4354A1_CHIP_REV)
 				strcpy(&fw_path[i+1], FW_BCM4354A1);
@@ -762,6 +765,9 @@ dhd_conf_set_conf_name_by_chip(dhd_pub_t *dhd, char *conf_path)
 			else if (chiprev == BCM43455C5_CHIP_REV)
 				strcpy(&conf_path[i+1], CONFIG_BCM43456C5);
 			break;
+        case BCM43455_CHIP_ID:
+            strcpy(&conf_path[i+1], CONFIG_BCM43455C0);
+            break;
 		case BCM4339_CHIP_ID:
 			if (chiprev == BCM4339A0_CHIP_REV)
 				strcpy(&conf_path[i+1], CONFIG_BCM4339A0);
